@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy bat!</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            background-color: purple;
+        }
+
+        #board {
+            background-image: url(./Picsart_24-05-06_12-06-23-199.jpg);
+            background-size: 100% 99.9%;
+            margin: 0; /* Remove default margin */
+            padding: 0; /* Remove default padding */
+            background-color: transparent;
+            display: block;
+            border: none;
+            width: 100vw;
+            height: 100vh ;
+        }
+
+        #openingScene {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+        }
+
+        #openingScene h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: purple;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Sans-Serif;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        
+        h1 {
+          color: #d691eb;
+          
+        }
+        
+        #restartButton {
+            position: absolute; /* Position the button relative to its containing block */
+            bottom: 20px; /* Adjust the distance from the bottom of the viewport */
+            left: 50%; /* Center the button horizontally */
+            transform: translateX(-50%); /* Center the button horizontally */
+            padding: 10px 20px;
+            background-color: purple;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Sans-Serif;
+        }
+        
+        #bird1Button {
+          background-color: brown;
+          border: none;
+          border-radius: 5px;
+        }
+        
+        #bird2Button {
+          background-color: red ;
+          border: none;
+          border-radius: 5px;
+        }
+        
+        #highScoreDisplay {
+          position: absolute;
+          top: 40px;
+          right: 10px;
+          color: white;
+          font-size: 20px;
+          font-family: Sans-Serif;
+        }
+        
+        #birdSelection {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        margin-top: 20px;
+        }
+
+       .bird-option {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       margin:0 1px;
+       }
+       
+      .bird-option img {
+       width: 70px;
+       height: auto;
+       border-radius: 60%;
+       margin-bottom: 10px;
+       margin-right: 10px;
+       }
+
+       .bird-button {
+        padding: 5px 5px;
+        background-color: ;
+        color: white;
+        border: none;
+        border-radius: 16px;
+        cursor: pointer;
+        font-family: Sans-Serif;
+        font-size: 16px;
+       }
+       
+       .update-text {
+        position: absolute;
+        bottom: -140px;
+        left: -140px;
+        color: white;
+        font-size: 10px;
+        font-family: Monospace;
+       }
+       
+       #refreshImg {
+        position: absolute;
+        top: 20px; /* Adjust the distance from the top of the viewport */
+        left: 20px; /* Adjust the distance from the left of the viewport */
+        width: 40px; /* Adjust the width of the image */
+        height: auto; /* Automatically adjust the height to maintain aspect ratio */
+        cursor: pointer;
+        }
+
+
+   </style>
+</head>
+<body>
+  <img id="refreshImg" src="Picsart_24-05-08_18-30-22-358.png" alt="Refresh">
+<div id="openingScene">
+    <h1>Welcome to Flappy BAT!</h1>
+    <button id="playButton" class="button">Play</button>
+    <button id="selectBirdButton" class="button">Select Bird</button>
+    <div id="birdSelection" style="display: none;">
+        <div class="bird-option">
+            <img src="Hirlerwithwings.png" alt="Bird 1">
+            <button id="bird1Button" class="bird-button" data-score="0" disabled>Hitler_</button>
+        </div>
+        <div class="bird-option">
+            <img src="1715450849369.png" alt="Bird 2">
+            <button id="bird2Button" class="bird-button" data-score="50">RGB BIRD</button>
+        </div>
+    </div>
+    <div id="updateText" class="update-text">
+      <pre>
+        New update V.2 -
+        Added select bird option to
+        select multiple birds More 
+        coming soon in next update.
+        Pipe margin bug fixed.
+        Restart problem fixed.
+        high-score added......
+      </pre>
+    </div>
+</div>
+
+</div>
+
+<canvas id="board"></canvas>
+<button id="restartButton" style="display:block;">Restart</button>
+<div id="highScoreDisplay" style="display: block"></div>
+<audio id="backgroundMusic" src="Eternxlkz - SLAY! (PHONK) (mp3cut.net).mp3" loop></audio>
+<script>
+    // JavaScript code for the game...
+
+    //board
+    let board;
+    let boardWidth = 360;
+    let boardHeight = 640;
+    let context;
+
+    //bird
+    let birdWidth = 50; //width/height ratio = 408/228 = 17/12
+    let birdHeight = 50;
+    let birdX = boardWidth/8;
+    let birdY = boardHeight/2;
+    let birdImg;
+
+    let bird = {
+        x: birdX,
+        y: birdY,
+        width: birdWidth,
+        height: birdHeight
+    }
+
+    //pipes
+    let pipeArray = [];
+    let pipeWidth = 64; //width/height ratio = 384/3072 = 1/8
+    let pipeHeight = 512;
+    let pipeX = boardWidth;
+    let pipeY = 0;
+
+    let topPipeImg;
+    let bottomPipeImg;
+
+    //physics
+    let velocityX = -2; //pipes moving left speed
+    let velocityY = 0; //bird jump speed
+    let gravity = 0.4;
+
+    let gameOver = false;
+    let score = 0;
+    let highScore =0;
+    let scoreRequirementForBird1 = 25;
+
+    window.onload = function() {
+        board = document.getElementById("board");
+        board.height = boardHeight;
+        board.width = boardWidth;
+        context = board.getContext("2d"); //used for drawing on the board
+
+        //load images
+        birdImg = new Image();
+        birdImg.src = "1714977122784.png";
+        birdImg.onload = function() {
+            context.drawImage(birdImg, bird.x, bird.y, bird.width,bird.height
+           );
+        }
+        
+        // Inside the window.onload function after loading the bird images
+
+
+        topPipeImg = new Image();
+        topPipeImg.src = "./Topkapipe.png";
+
+        bottomPipeImg = new Image();
+        bottomPipeImg.src = "./Bottomkapipe.png";
+
+        document.getElementById("playButton").addEventListener("click", function() {
+            startGame();
+            playBackgroundMusic(); // Start background music when play button is clicked
+        });
+        
+        // Inside the window.onload function
+
+// Function to enable/disable bird selection buttons based on score
+function updateBirdSelection() {
+    document.querySelectorAll('.bird-button').forEach(button => {
+        const scoreRequired = parseInt(button.getAttribute('data-score'));
+        if (score >= scoreRequired) {
+            button.removeAttribute('disabled');
+        }
+    });
+}
+
+// Call the function to update bird selection buttons initially
+updateBirdSelection();
+
+
+// Add event listener to the bird selection button
+document.getElementById('selectBirdButton').addEventListener('click', function() {
+    // Toggle the visibility of the bird selection section
+    var birdSelection = document.getElementById('birdSelection');
+    birdSelection.style.display = birdSelection.style.display === 'none' ? 'block' : 'none';
+});
+
+// Inside the window.onload function after loading the bird images
+
+// Set the size of bird1 dynamically
+
+
+// Add event listeners to bird selection buttons
+document.getElementById('bird1Button').addEventListener('click', function() {
+    // Change the bird image to Default Bird
+    birdImg.src = "Hirlerwithwings.png";
+});
+
+document.getElementById('bird2Button').addEventListener('click', function() {
+    // Change the bird image to Bird 2
+    birdImg.src = "1715450849369.png";
+});
+
+document.getElementById('bird1Button').addEventListener('click', function() {
+    // Change the bird image to Default Bird
+    birdImg.src = "Hirlerwithwings.png";
+    // Adjust bird size dynamically
+    bird.width = 70; // Adjust the width of bird 1
+    bird.height = 46; // Adjust the height of bird 1
+});
+
+document.getElementById('bird2Button').addEventListener('click', function() {
+    // Change the bird image to Bird 2
+    birdImg.src = "1715450849369.png";
+    // Adjust bird size dynamically
+    bird.width = 60; // Adjust the width of bird 2
+    bird.height = 30; // Adjust the height of bird 2
+});
+
+// Add an event listener to the refresh image
+document.getElementById('refreshImg').addEventListener('click', function() {
+    // Reload the page
+    location.reload();
+});
+
+
+// Add more event listeners for additional bird buttons
+
+        
+        // Function to handle restart button click
+        document.getElementById("restartButton").addEventListener("click", function() {
+            restartGame();
+        document.getElementById("backgroundMusic").load(); // Reload the audio element
+        document.getElementById("backgroundMusic").play(); // Play the background music
+      });
+    }
+         
+         
+    function startGame() {
+        document.getElementById("openingScene").style.display = "none";
+        document.getElementById("board").style.display = "block";
+        document.getElementById("restartButton").style.display = "block";
+
+        requestAnimationFrame(update);
+        setInterval(placePipes, 1500); //every 1.5 seconds
+        document.addEventListener("keydown", moveBird);
+
+        // Touch controls for Android
+        board.addEventListener("touchstart", jump);
+    }
+    
+    function update() {
+        requestAnimationFrame(update);
+        if (gameOver) {
+            return;
+        }
+        context.clearRect(0, 0, board.width, board.height);
+
+        //bird
+        velocityY += gravity;
+        bird.y = Math.max(bird.y + velocityY, 0); //apply gravity to current bird.y, limit the bird.y to top of the canvas
+        context.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+        if (bird.y > board.height) {
+            gameOver = true;
+        }
+        
+    
+
+        //pipes
+        for (let i = 0; i < pipeArray.length; i++) {
+            let pipe = pipeArray[i];
+            pipe.x += velocityX;
+            context.drawImage(pipe.img, pipe.x, pipe.y, pipe.width, pipe.height);
+
+            if (!pipe.passed && bird.x > pipe.x + pipe.width) {
+                score += 0.5; //0.5 because there are 2 pipes! so 0.5*2 = 1, 1 for each set of pipes
+                pipe.passed = true;
+                updateHighScore(score);
+            }
+
+            if (detectCollision(bird, pipe)) {
+                gameOver = true;
+            }
+        }
+
+        //clear pipes
+        while (pipeArray.length > 0 && pipeArray[0].x < -pipeWidth) {
+            pipeArray.shift(); //removes first element from the array
+        }
+
+        //score
+        context.fillStyle = "white";
+        context.font = "45px sans-serif";
+        context.fillText(score, 170, 75);
+
+        if (gameOver) {
+            context.fillText("GAME KHATAM!", 15, 325);
+            pauseBackgroundMusic(); // Pause background music when game is over
+        }
+    }
+
+    function placePipes() {
+        if (gameOver) {
+            return;
+        }
+
+        let randomPipeY = pipeY - pipeHeight/4 - Math.random()*(pipeHeight/2);
+        let openingSpace = board.height/4;
+
+        let topPipe = {
+            img: topPipeImg,
+            x: pipeX,
+            y: randomPipeY,
+            width: pipeWidth,
+            height: pipeHeight,
+            passed: false
+        }
+        pipeArray.push(topPipe);
+
+        let bottomPipe = {
+            img: bottomPipeImg,
+            x: pipeX,
+            y: randomPipeY + pipeHeight + openingSpace,
+            width: pipeWidth,
+            height: pipeHeight,
+            passed: false
+        }
+        pipeArray.push(bottomPipe);
+    }
+    
+    let backgroundMusic = document.getElementById("backgroundMusic");
+
+    // Play the background music
+    function resumeBackgroundMusic() {
+        backgroundMusic.currentTime = 0; // Rewind to the beginning
+        backgroundMusic.play();
+    }
+    
+    function playBackgroundMusic() {
+        backgroundMusic.currentTime = 0; // Rewind to the beginning
+        backgroundMusic.play();
+    }
+
+    // Pause the background music
+    function pauseBackgroundMusic() {
+        backgroundMusic.pause();
+    }
+
+    function moveBird(e) {
+        if (e.code == "Space" || e.code == "ArrowUp" || e.code == "KeyX") {
+            jump();
+
+            // Restart game if it's over
+            if (gameOver) {
+                restartGame();
+            }
+        }
+    }
+
+    function jump() {
+        velocityY = -6;
+    }
+
+    function restartGame() {
+        console.log("Game restarted!");
+        bird.y = birdY;
+        pipeArray = [];
+        score = 0;
+        gameOver = false;
+        resumeBackgroundMusic(); // Resume background music when game restarts
+    }
+    
+    function updateHighScoreDisplay() {
+    document.getElementById('highScoreDisplay').textContent = 'High Score: ' + highScore;
+    }
+
+    // Call the function to update the high score display initially
+    updateHighScoreDisplay();
+    
+
+    // Update the high score when needed (e.g., when the game ends and the current score exceeds the high score)
+    function updateHighScore(newScore) {
+    if (newScore > highScore) {
+        highScore = newScore;
+        updateHighScoreDisplay();
+      }
+    }
+    // Inside the window.onload function
+
+// Function to enable/disable bird selection buttons based on score
+function updateBirdSelection() {
+    document.querySelectorAll('.bird-button').forEach(button => {
+        const scoreRequired = parseInt(button.getAttribute('data-score'));
+        if (score >= scoreRequired) {
+            button.removeAttribute('disabled');
+        }
+    });
+}
+
+// Call the function to update bird selection buttons initially
+updateBirdSelection();
+
+
+    function detectCollision(a, b) {
+        let birdBox = {
+            x: a.x + 5,
+            y: a.y + 5,
+            width: a.width - 10,
+            height: a.height - 10
+        };
+
+        let pipeBox = {
+            x: b.x + 10,
+            y: b.y + 10,
+            width: b.width - 20,
+            height: b.height - 20
+        };
+        return birdBox.x < pipeBox.x + pipeBox.width &&
+            birdBox.x + birdBox.width > pipeBox.x &&
+            birdBox.y < pipeBox.y + pipeBox.height &&
+            birdBox.y + birdBox.height > pipeBox.y;
+    }
+
+</script>
+</body>
+</html>
